@@ -147,3 +147,5 @@ cython_debug/
 .parcel-cache/
 
 .idea
+
+chat_history*
