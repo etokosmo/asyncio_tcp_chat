@@ -58,15 +58,15 @@ async def authorise(tcp_config):
 
 
 async def tcp_writer(tcp_config):
-    reader, writer = await authorise(tcp_config)
-    while True:
-        message = input('Введите ваше сообщение: ')
+    try:
+        reader, writer = await authorise(tcp_config)
+        message = tcp_config['msg']
         writer.write(f"{message}\n\n".encode())
         logger.info(f'SEND: {message}')
         await writer.drain()
-
-    print('Close the connection')
-    writer.close()
+    finally:
+        print('Close the connection')
+        writer.close()
 
 
 if __name__ == '__main__':
@@ -76,17 +76,24 @@ if __name__ == '__main__':
         level=logging.INFO
     )
     logging.getLogger().addHandler(logging.StreamHandler())
+
     tcp_config = {}
     env = Env()
     env.read_env()
     tcp_config['host'] = env.str('HOST', 'minechat.dvmn.org')
     tcp_config['port'] = env.int('PORT', 5050)
     tcp_config['token'] = env.str('MINECHAT_USER_TOKEN', None)
+    tcp_config['username'] = env.str('USERNAME', None)
+    tcp_config['msg'] = env.str('MESSAGE', None)
+
     parser = argparse.ArgumentParser(description='Communicate with TCP chat')
+    parser.add_argument('msg', help='message')
     parser.add_argument('--host', help='host of chat')
     parser.add_argument('--port', type=int, help='port of chat')
     parser.add_argument('--token', type=int, help='user token')
+    parser.add_argument('--username', type=int, help='username')
     args = parser.parse_args()
     for key, value in vars(args).items():
         tcp_config[key] = value or tcp_config[key]
+
     asyncio.run(tcp_writer(tcp_config))
