@@ -94,8 +94,8 @@ if __name__ == '__main__':
     parser.add_argument('msg', help='message')
     parser.add_argument('--host', help='host of chat')
     parser.add_argument('--port', type=int, help='port of chat')
-    parser.add_argument('--token', type=int, help='user token')
-    parser.add_argument('--username', type=int, help='username')
+    parser.add_argument('--token', help='user token')
+    parser.add_argument('--username', help='username')
     args = parser.parse_args()
     for key, value in vars(args).items():
         tcp_config[key] = value or tcp_config[key]
