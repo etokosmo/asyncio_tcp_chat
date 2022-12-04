@@ -16,7 +16,7 @@ Script to connect to the secret chat
 ## Configurations
 
 * Python version: 3.9
-* Libraries: [requirements.txt]()
+* Libraries: [requirements.txt](https://github.com/etokosmo/asyncio_tcp_chat/blob/main/requirements.txt)
 
 ## Launch
 
