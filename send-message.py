@@ -9,7 +9,8 @@ from environs import Env
 logger = logging.getLogger(__name__)
 
 
-async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
+                   tcp_config):
     """Registration new user"""
     writer.write("\n".encode())
     await writer.drain()
@@ -17,7 +18,10 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     response = await reader.readline()
     logger.info(response.decode())
 
-    username = input('У вас отсутствует токен. Введите ваше имя: ')
+    username = tcp_config['username']
+    if not tcp_config['username']:
+        username = input('У вас отсутствует токен. Введите ваше имя: ')
+
     writer.write(f"{username}\n\n".encode())
     logger.info(f'SEND: {username}')
 
@@ -51,9 +55,9 @@ async def authorise(tcp_config):
                 tcp_config['host'], tcp_config['port'])
             response = await reader.readline()
             logger.info(response.decode())
-            await register(reader, writer)
+            await register(reader, writer, tcp_config)
     else:
-        await register(reader, writer)
+        await register(reader, writer, tcp_config)
     return reader, writer
 
 
