@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 
+import aiofiles
 from environs import Env
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,13 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     username = input('У вас отсутствует токен. Введите ваше имя: ')
     writer.write(f"{username}\n\n".encode())
     logger.info(f'SEND: {username}')
+
+    response = await reader.readline()
+    decoded_response = json.loads(response)
+    logger.info(decoded_response)
+    minechat_user_token = decoded_response.get('account_hash')
+    async with aiofiles.open('.env', mode='a') as env_file:
+        await env_file.write(f'\nMINECHAT_USER_TOKEN={minechat_user_token}')
     await writer.drain()
 
 
@@ -30,15 +38,19 @@ async def tcp_writer(tcp_config):
     if tcp_config['token']:
         writer.write(f"{tcp_config['token']}\n".encode())
         await writer.drain()
+
+        response = await reader.readline()
+        decoded_response = json.loads(response)
+
+        if not decoded_response:
+            logger.info('Неправильный токен. Отправляем на регистрацию ...')
+            writer.close()
+            reader, writer = await asyncio.open_connection(
+                tcp_config['host'], tcp_config['port'])
+            response = await reader.readline()
+            logger.info(response.decode())
+            await register(reader, writer)
     else:
-        await register(reader, writer)
-    response = await reader.readline()
-    decoded_response = json.loads(response)
-    logger.info(response)
-    if not decoded_response:
-        logger.info('Неправильный токен. Отправляем на регистрацию ...')
-        reader, writer = await asyncio.open_connection(
-            tcp_config['host'], tcp_config['port'])
         await register(reader, writer)
 
     while True:
