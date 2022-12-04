@@ -1,15 +1,18 @@
 import argparse
 import asyncio
 import datetime
+import logging
 
 import aiofiles
 from environs import Env
+
+logger = logging.getLogger(__name__)
 
 
 async def save_message(message, chat_history_filename):
     current_time = datetime.datetime.now()
     message = f"{current_time.strftime('[%d.%m.%y %H:%M]')} {message}"
-    print(message)
+    logger.info(message)
     async with aiofiles.open(chat_history_filename, mode='a') as chat_file:
         await chat_file.write(message)
 
@@ -22,11 +25,18 @@ async def tcp_reader(tcp_config):
         message = await reader.readline()
         await save_message(message.decode(), tcp_config['history'])
 
-    print('Close the connection')
+    logger.info('Close the connection')
     writer.close()
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        filename='logs.log',
+        format='%(levelname)s:%(name)s:%(message)s',
+        level=logging.INFO
+    )
+    logging.getLogger().addHandler(logging.StreamHandler())
+
     tcp_config = {}
     env = Env()
     env.read_env()

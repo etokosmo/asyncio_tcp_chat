@@ -69,7 +69,7 @@ async def tcp_writer(tcp_config):
         logger.info(f'SEND: {message}')
         await writer.drain()
     finally:
-        print('Close the connection')
+        logger.info('Close the connection')
         writer.close()
 
 
