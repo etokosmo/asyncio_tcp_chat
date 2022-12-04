@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+    """Registration new user"""
     writer.write("\n".encode())
     await writer.drain()
 
@@ -29,7 +30,8 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
     await writer.drain()
 
 
-async def tcp_writer(tcp_config):
+async def authorise(tcp_config):
+    """Authorization user"""
     reader, writer = await asyncio.open_connection(
         tcp_config['host'], tcp_config['port'])
 
@@ -52,7 +54,11 @@ async def tcp_writer(tcp_config):
             await register(reader, writer)
     else:
         await register(reader, writer)
+    return reader, writer
 
+
+async def tcp_writer(tcp_config):
+    reader, writer = await authorise(tcp_config)
     while True:
         message = input('Введите ваше сообщение: ')
         writer.write(f"{message}\n\n".encode())
