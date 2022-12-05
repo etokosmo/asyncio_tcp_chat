@@ -34,36 +34,39 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
     await writer.drain()
 
 
-async def authorise(tcp_config):
+async def authorise(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
+                    token: str):
     """Authorization user"""
-    reader, writer = await asyncio.open_connection(
-        tcp_config['host'], tcp_config['port'])
+    writer.write(f"{token}\n".encode())
+    await writer.drain()
 
     response = await reader.readline()
-    logger.info(response.decode())
-    if tcp_config['token']:
-        writer.write(f"{tcp_config['token']}\n".encode())
-        await writer.drain()
-
-        response = await reader.readline()
-        decoded_response = json.loads(response)
-
-        if not decoded_response:
-            logger.info('Неправильный токен. Отправляем на регистрацию ...')
-            writer.close()
-            reader, writer = await asyncio.open_connection(
-                tcp_config['host'], tcp_config['port'])
-            response = await reader.readline()
-            logger.info(response.decode())
-            await register(reader, writer, tcp_config)
-    else:
-        await register(reader, writer, tcp_config)
-    return reader, writer
+    decoded_response = json.loads(response)
+    return decoded_response
 
 
 async def main(tcp_config):
     try:
-        reader, writer = await authorise(tcp_config)
+        reader, writer = await asyncio.open_connection(
+            tcp_config['host'], tcp_config['port'])
+
+        response = await reader.readline()
+        logger.info(response.decode())
+        if tcp_config['token']:
+            user = await authorise(reader, writer, tcp_config['token'])
+
+            if not user:
+                logger.info(
+                    'Неправильный токен. Отправляем на регистрацию ...')
+                writer.close()
+                reader, writer = await asyncio.open_connection(
+                    tcp_config['host'], tcp_config['port'])
+                response = await reader.readline()
+                logger.info(response.decode())
+                await register(reader, writer, tcp_config)
+        else:
+            await register(reader, writer, tcp_config)
+
         message = tcp_config['msg']
         writer.write(f"{message}\n\n".encode())
         logger.info(f'SEND: {message}')
