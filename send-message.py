@@ -2,11 +2,23 @@ import argparse
 import asyncio
 import json
 import logging
+from contextlib import asynccontextmanager
 
 import aiofiles
 from environs import Env
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def open_connection(host, port):
+    conn = await asyncio.open_connection(host, port)
+    reader, writer = conn
+    try:
+        yield conn
+    finally:
+        logger.info('Close the connection')
+        writer.close()
 
 
 async def write_to_socket(writer: asyncio.StreamWriter, message: str):
@@ -46,10 +58,8 @@ async def authorise(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
 
 
 async def main(tcp_config):
-    try:
-        reader, writer = await asyncio.open_connection(
-            tcp_config['host'], tcp_config['port'])
-
+    async with open_connection(tcp_config['host'], tcp_config['port']) as conn:
+        reader, writer = conn
         response = await reader.readline()
         logger.info(response.decode())
         if tcp_config['token']:
@@ -73,9 +83,6 @@ async def main(tcp_config):
         message = tcp_config['msg']
         await write_to_socket(writer, f"{message}\n\n")
         logger.info(f'SEND: {message}')
-    finally:
-        logger.info('Close the connection')
-        writer.close()
 
 
 if __name__ == '__main__':

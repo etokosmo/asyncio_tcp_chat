@@ -2,11 +2,23 @@ import argparse
 import asyncio
 import datetime
 import logging
+from contextlib import asynccontextmanager
 
 import aiofiles
 from environs import Env
 
 logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def open_connection(host, port):
+    conn = await asyncio.open_connection(host, port)
+    reader, writer = conn
+    try:
+        yield conn
+    finally:
+        logger.info('Close the connection')
+        writer.close()
 
 
 async def save_message(message, chat_history_filename):
@@ -18,15 +30,12 @@ async def save_message(message, chat_history_filename):
 
 
 async def main(tcp_config):
-    reader, writer = await asyncio.open_connection(
-        tcp_config['host'], tcp_config['port'])
+    async with open_connection(tcp_config['host'], tcp_config['port']) as conn:
+        reader, writer = conn
 
-    while not reader.at_eof():
-        message = await reader.readline()
-        await save_message(message.decode(), tcp_config['history'])
-
-    logger.info('Close the connection')
-    writer.close()
+        while not reader.at_eof():
+            message = await reader.readline()
+            await save_message(message.decode(), tcp_config['history'])
 
 
 if __name__ == '__main__':
