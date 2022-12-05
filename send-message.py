@@ -61,7 +61,7 @@ async def authorise(tcp_config):
     return reader, writer
 
 
-async def tcp_writer(tcp_config):
+async def main(tcp_config):
     try:
         reader, writer = await authorise(tcp_config)
         message = tcp_config['msg']
@@ -100,4 +100,4 @@ if __name__ == '__main__':
     for key, value in vars(args).items():
         tcp_config[key] = value or tcp_config[key]
 
-    asyncio.run(tcp_writer(tcp_config))
+    asyncio.run(main(tcp_config))
