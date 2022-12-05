@@ -16,16 +16,12 @@ async def write_to_socket(writer: asyncio.StreamWriter, message: str):
 
 
 async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
-                   tcp_config):
+                   username: str):
     """Registration new user"""
     await write_to_socket(writer, "\n")
 
     response = await reader.readline()
     logger.info(response.decode())
-
-    username = tcp_config['username']
-    if not tcp_config['username']:
-        username = input('У вас отсутствует токен. Введите ваше имя: ')
 
     await write_to_socket(writer, f"{username}\n\n")
     logger.info(f'SEND: {username}')
@@ -69,7 +65,10 @@ async def main(tcp_config):
                 logger.info(response.decode())
                 await register(reader, writer, tcp_config)
         else:
-            await register(reader, writer, tcp_config)
+            username = tcp_config['username']
+            if not tcp_config['username']:
+                username = input('У вас отсутствует токен. Введите ваше имя: ')
+            await register(reader, writer, username)
 
         message = tcp_config['msg']
         await write_to_socket(writer, f"{message}\n\n")
