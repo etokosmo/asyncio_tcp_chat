@@ -9,11 +9,16 @@ from environs import Env
 logger = logging.getLogger(__name__)
 
 
+async def write_to_socket(writer: asyncio.StreamWriter, message: str):
+    """Write the data to the underlying socket immediately"""
+    writer.write(message.encode())
+    await writer.drain()
+
+
 async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
                    tcp_config):
     """Registration new user"""
-    writer.write("\n".encode())
-    await writer.drain()
+    await write_to_socket(writer, "\n")
 
     response = await reader.readline()
     logger.info(response.decode())
@@ -22,7 +27,7 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
     if not tcp_config['username']:
         username = input('У вас отсутствует токен. Введите ваше имя: ')
 
-    writer.write(f"{username}\n\n".encode())
+    await write_to_socket(writer, f"{username}\n\n")
     logger.info(f'SEND: {username}')
 
     response = await reader.readline()
@@ -37,8 +42,7 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
 async def authorise(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
                     token: str):
     """Authorization user"""
-    writer.write(f"{token}\n".encode())
-    await writer.drain()
+    await write_to_socket(writer, f"{token}\n")
 
     response = await reader.readline()
     decoded_response = json.loads(response)
@@ -68,9 +72,8 @@ async def main(tcp_config):
             await register(reader, writer, tcp_config)
 
         message = tcp_config['msg']
-        writer.write(f"{message}\n\n".encode())
+        await write_to_socket(writer, f"{message}\n\n")
         logger.info(f'SEND: {message}')
-        await writer.drain()
     finally:
         logger.info('Close the connection')
         writer.close()
