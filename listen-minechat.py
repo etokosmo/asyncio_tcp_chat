@@ -21,21 +21,20 @@ async def open_connection(host, port):
         writer.close()
 
 
-async def save_message(message, chat_history_filename):
+async def save_message(message, chat_file):
     current_time = datetime.datetime.now()
     message = f"{current_time.strftime('[%d.%m.%y %H:%M]')} {message}"
     logger.info(message)
-    async with aiofiles.open(chat_history_filename, mode='a') as chat_file:
-        await chat_file.write(message)
+    await chat_file.write(message)
 
 
 async def main(tcp_config):
     async with open_connection(tcp_config['host'], tcp_config['port']) as conn:
         reader, writer = conn
-
-        while not reader.at_eof():
-            message = await reader.readline()
-            await save_message(message.decode(), tcp_config['history'])
+        async with aiofiles.open(tcp_config['history'], mode='a') as chat_file:
+            while not reader.at_eof():
+                message = await reader.readline()
+                await save_message(message.decode(), chat_file)
 
 
 if __name__ == '__main__':
@@ -59,4 +58,5 @@ if __name__ == '__main__':
     args = parser.parse_args()
     for key, value in vars(args).items():
         tcp_config[key] = value or tcp_config[key]
+
     asyncio.run(main(tcp_config))
