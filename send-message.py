@@ -6,7 +6,7 @@ import logging
 import aiofiles
 from environs import Env
 
-from tcp_tools import open_connection
+from tcp_tools import open_connection, InvalidToken
 
 logger = logging.getLogger(__name__)
 
@@ -46,33 +46,47 @@ async def authorise(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
     return decoded_response
 
 
+async def get_username(tcp_config):
+    """Return username"""
+    username = tcp_config['username']
+    if not tcp_config['username']:
+        username = input('У вас отсутствует токен. Введите ваше имя: ')
+    return username
+
+
 async def main(tcp_config):
     async with open_connection(tcp_config['host'], tcp_config['port']) as conn:
         reader, writer = conn
         response = await reader.readline()
         logger.info(response.decode())
+
         if tcp_config['token']:
             user = await authorise(reader, writer, tcp_config['token'])
 
             if not user:
                 logger.info(
                     'Неправильный токен. Отправляем на регистрацию ...')
-                writer.close()
-                reader, writer = await asyncio.open_connection(
-                    tcp_config['host'], tcp_config['port'])
-                response = await reader.readline()
-                logger.info(response.decode())
-                await register(reader, writer, tcp_config)
+                async with open_connection(
+                        tcp_config['host'],
+                        tcp_config['port']) as conn:
+                    reader, writer = conn
+                    response = await reader.readline()
+                    logger.info(response.decode())
+
+                    username = await get_username(tcp_config)
+                    await register(reader, writer, username)
+
+                    message = tcp_config['msg']
+                    await write_to_socket(writer, f"{message}\n\n")
+                    logger.info(f'SEND: {message}')
+                raise InvalidToken
         else:
-            username = tcp_config['username']
-            if not tcp_config['username']:
-                username = input('У вас отсутствует токен. Введите ваше имя: ')
+            username = await get_username(tcp_config)
             await register(reader, writer, username)
 
         message = tcp_config['msg']
         await write_to_socket(writer, f"{message}\n\n")
         logger.info(f'SEND: {message}')
-
 
 if __name__ == '__main__':
     logging.basicConfig(
