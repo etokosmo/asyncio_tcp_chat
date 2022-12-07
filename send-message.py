@@ -34,7 +34,6 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
     minechat_user_token = decoded_response.get('account_hash')
     async with aiofiles.open('.env', mode='a') as env_file:
         await env_file.write(f'\nMINECHAT_USER_TOKEN={minechat_user_token}')
-    await writer.drain()
 
 
 async def authorise(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
