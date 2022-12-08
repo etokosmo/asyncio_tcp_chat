@@ -18,7 +18,7 @@ async def save_message(message, chat_file):
     await chat_file.write(message)
 
 
-async def main(tcp_config):
+async def handle_chat(tcp_config):
     async with open_connection(tcp_config['host'], tcp_config['port']) as conn:
         reader, writer = conn
         async with aiofiles.open(tcp_config['history'], mode='a') as chat_file:
@@ -49,4 +49,4 @@ if __name__ == '__main__':
     for key, value in vars(args).items():
         tcp_config[key] = value or tcp_config[key]
 
-    asyncio.run(main(tcp_config))
+    asyncio.run(handle_chat(tcp_config))
