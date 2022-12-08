@@ -27,7 +27,7 @@ async def handle_chat(tcp_config):
                 await save_message(message.decode(), chat_file)
 
 
-if __name__ == '__main__':
+def main():
     logging.basicConfig(
         filename='logs.log',
         format='%(levelname)s:%(name)s:%(message)s',
@@ -50,3 +50,7 @@ if __name__ == '__main__':
         tcp_config[key] = value or tcp_config[key]
 
     asyncio.run(handle_chat(tcp_config))
+
+
+if __name__ == '__main__':
+    main()
