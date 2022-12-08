@@ -6,7 +6,7 @@ import logging
 import aiofiles
 from environs import Env
 
-from tcp_tools import open_connection, InvalidToken
+from tcp_tools import open_connection, MissingUsername
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ async def register(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
     logger.info(response.decode())
 
     await write_to_socket(writer, f"{username}\n\n")
-    logger.info(f'SEND: {username}')
+    logger.info(f'SEND USERNAME: {username}')
 
     response = await reader.readline()
     decoded_response = json.loads(response)
@@ -46,14 +46,6 @@ async def authorise(reader: asyncio.StreamReader, writer: asyncio.StreamWriter,
     return decoded_response
 
 
-async def get_username(tcp_config):
-    """Return username"""
-    username = tcp_config['username']
-    if not tcp_config['username']:
-        username = input('У вас отсутствует токен. Введите ваше имя: ')
-    return username
-
-
 async def main(tcp_config):
     async with open_connection(tcp_config['host'], tcp_config['port']) as conn:
         reader, writer = conn
@@ -66,22 +58,14 @@ async def main(tcp_config):
             if not user:
                 logger.info(
                     'Неправильный токен. Отправляем на регистрацию ...')
-                async with open_connection(
-                        tcp_config['host'],
-                        tcp_config['port']) as conn:
-                    reader, writer = conn
-                    response = await reader.readline()
-                    logger.info(response.decode())
-
-                    username = await get_username(tcp_config)
-                    await register(reader, writer, username)
-
-                    message = tcp_config['msg']
-                    await write_to_socket(writer, f"{message}\n\n")
-                    logger.info(f'SEND: {message}')
-                raise InvalidToken
+                username = tcp_config['username']
+                if not tcp_config['username']:
+                    raise MissingUsername('У вас отсутствует username')
+                await register(reader, writer, username)
         else:
-            username = await get_username(tcp_config)
+            username = tcp_config['username']
+            if not tcp_config['username']:
+                raise MissingUsername('У вас отсутствует username')
             await register(reader, writer, username)
 
         message = tcp_config['msg']
